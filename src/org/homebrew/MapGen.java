@@ -5,7 +5,7 @@ import java.util.HashMap;
 
 class MapGen
 {
-    public static final int LATEST_MAP_VERSION = 4;
+    public static final int LATEST_MAP_VERSION = 5;
     private static void gen_heightmap(double[] heightmap, Random r, int map_version)
     {
         heightmap[0] = heightmap[128] = heightmap[128*129] = heightmap[128*130] = 64;
@@ -81,6 +81,8 @@ class MapGen
     public static void generate(byte[] world, byte[] world0, int[] aux, int seed, int map_version, boolean lite /* used for start screen */, GeneratingGUI report)
     {
         Random r = new Random(seed);
+	if(map_version != 5)
+	{
         byte[] heightmap = new byte[129*129];
         if(map_version <= 2)
             gen_heightmap_old(heightmap, r, map_version);
@@ -119,6 +121,8 @@ class MapGen
         else
             for(int i = 0; i < 128*128*128; i++)
                 world0[i] = 1;
+	for(int i = 0; i < 128*128*128; i++)
+                if(world[i] != 0) world[i] = (byte)131;
         for(int i = 0; i < 128*128*128; i++)
             world[i] = 0;
         for(int x = 0; x < 128; x++)
@@ -151,5 +155,48 @@ class MapGen
                 }
             }
         heightmap = null;
+	}
+	else
+	{
+		if (lite)
+		{
+			for(int i = 0; i < 128*128*128; i++)
+			if(i % 128 < 64)
+				world[i] = (byte)128;
+			else
+				world[i] = (byte)0;
+		}
+		else
+		{
+		for(int i = 0; i < 128*128*128; i++)
+			world[i] = (byte)0;
+		Perlin3D.perlin3D(r, world, world0, aux, report);
+		for(int x = 0; x < 128; x++)
+            		for(int z = 0; z < 128; z++)
+            		{
+                		int offset = 16384*x+128*z;
+				int nonair = 0;
+				world[offset + 127] = (byte)0;
+				world[offset + 126] = (byte)0;
+				world[offset + 125] = (byte)0;
+				for (int y = 124; y > 0; y--)
+				{
+					if (world[offset + y] == 1)
+					{
+						if (nonair == 0)
+							world[offset + y] = (byte)128;
+						else if (nonair < 4)
+							world[offset + y] = (byte)131;
+						else
+							world[offset + y] = (byte)132;
+						nonair++;
+					}
+					else
+						world[offset + y] = (byte)0;
+				}
+				world[offset] = (byte)132;
+			}
+		}
+	}
     }
 }
